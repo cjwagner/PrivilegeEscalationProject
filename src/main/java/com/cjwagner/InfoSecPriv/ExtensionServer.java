@@ -4,13 +4,19 @@ import static spark.Spark.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 public class ExtensionServer {
 	
@@ -24,6 +30,39 @@ public class ExtensionServer {
 	public static void main(String[] args)
 	{
 		initializeLogStore();
+		
+		get("/data", (request, response) ->
+		{
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(new Date());
+			cal.add(Calendar.HOUR, -1);
+			Date tMinus1H = cal.getTime();
+			
+			Map<String, LoggerMessage> filtered = new HashMap<String, LoggerMessage>();
+			for (Map.Entry<String, LoggerMessage> entry : logStore.entrySet())
+			{
+				String ip = entry.getKey();
+				LoggerMessage logmess = entry.getValue();
+				LoggerMessage logmessFiltered = new LoggerMessage();
+				logmessFiltered.setFirstLogTime(logmess.getFirstLogTime());
+				List<LogData> filteredData = new ArrayList<LogData>();
+				logmessFiltered.setLogs(filteredData);
+				for(LogData data : logmess.getLogs())
+				{
+					if (data.getDate().after(tMinus1H))
+					{
+						filteredData.add(data);
+					}
+				}
+				
+				filtered.put(ip, logmessFiltered);
+			}
+			
+			ObjectMapper objMapper = new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
+			String jsonResponse = objMapper.writeValueAsString(filtered);
+			System.out.println("Responded to query for recent data from IP: " + request.ip());
+			return jsonResponse;
+		});
 		
 		post("/LicenseRegistry", (request, response)->
 			{
@@ -68,6 +107,7 @@ public class ExtensionServer {
 
 	private static void initializeLogStore() {
 		
+		System.out.println("Date: " + new Date().getTime());
 		System.out.println("Initializing Log Store...");
 		
 		int fileLoadCount = 0;
