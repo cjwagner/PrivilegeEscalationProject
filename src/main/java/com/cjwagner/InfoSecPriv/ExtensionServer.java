@@ -35,8 +35,8 @@ public class ExtensionServer {
 		{
 			Calendar cal = Calendar.getInstance();
 			cal.setTime(new Date());
-			cal.add(Calendar.HOUR, -1);
-			Date tMinus1H = cal.getTime();
+			cal.add(Calendar.MINUTE, -5);
+			Date tMinusDelta = cal.getTime();
 			
 			Map<String, LoggerMessage> filtered = new HashMap<String, LoggerMessage>();
 			for (Map.Entry<String, LoggerMessage> entry : logStore.entrySet())
@@ -49,7 +49,7 @@ public class ExtensionServer {
 				logmessFiltered.setLogs(filteredData);
 				for(LogData data : logmess.getLogs())
 				{
-					if (data.getDate().after(tMinus1H))
+					if (data.getDate().after(tMinusDelta))
 					{
 						filteredData.add(data);
 					}
